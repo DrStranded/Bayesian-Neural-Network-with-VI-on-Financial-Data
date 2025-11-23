@@ -22,6 +22,9 @@ class Config:
     - File paths for data and results
     """
 
+    # ==================== General Parameters ====================
+    SEED = 42
+
     # ==================== Data Parameters ====================
     TICKERS: List[str] = ['AAPL', 'SPY', 'TSLA']
     START_DATE: str = '2018-01-01'
@@ -43,7 +46,7 @@ class Config:
     PRIOR_BASE_STD: float = 0.1
     VIX_MEAN: float = 20.0
     VIX_SCALE: float = 10.0
-    VIX_SENSITIVITY: float = 1.0
+    VIX_SENSITIVITY: float = 2.0
 
     # ==================== Training Parameters ====================
     BATCH_SIZE: int = 32

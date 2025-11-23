@@ -100,14 +100,10 @@ class AdaptivePrior:
         if not isinstance(vix_value, torch.Tensor):
             vix_value = torch.tensor(vix_value, dtype=torch.float32)
 
-        # Handle NaN values: replace with vix_mean as a safe default
-        # This is important for missing VIX data in real-world scenarios
+        # Handle NaN: use vix_mean as default
         if torch.isnan(vix_value).any():
-            vix_value = torch.where(
-                torch.isnan(vix_value),
-                torch.tensor(self.vix_mean, dtype=torch.float32),
-                vix_value
-            )
+            vix_value = vix_value.clone()
+            vix_value[torch.isnan(vix_value)] = self.vix_mean
 
         # Normalize VIX relative to historical mean
         # This centers the adaptation around the typical VIX value
