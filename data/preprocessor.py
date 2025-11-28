@@ -70,31 +70,81 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def merge_with_vix(stock_df, vix_df):
-    """Merge stock data with VIX"""
+    """
+    Merge stock data with VIX index
+
+    Args:
+        stock_df: Stock DataFrame with Date column
+        vix_df: VIX DataFrame with Date and VIX columns
+
+    Returns:
+        Merged DataFrame with VIX column
+    """
+    # Make copies
     stock_df = stock_df.copy()
     vix_df = vix_df.copy()
-    
-    # Ensure stock_df has Date column
-    if 'Date' not in stock_df.columns:
-        stock_df = stock_df.reset_index()
-    
-    # Convert to timezone-naive (handles tz-aware objects)
-    stock_df['Date'] = pd.to_datetime(stock_df['Date'], utc=True).dt.tz_localize(None)
-    
-    # Prepare VIX
-    vix_merge = vix_df.copy()
-    if vix_merge.index.name == 'Date':
-        vix_merge = vix_merge.reset_index()
-    vix_merge['Date'] = pd.to_datetime(vix_merge['Date'], utc=True).dt.tz_localize(None)
-    
-    # Merge
-    merged = pd.merge(stock_df, vix_merge[['Date', 'VIX']], on='Date', how='left')
-    
-    # Fill missing VIX
-    merged['VIX'] = merged['VIX'].ffill().bfill()
-    
-    print(f"  Merged with VIX: {len(merged)} rows, {merged['VIX'].isna().sum()} missing")
-    
+    if 'Date' in vix_df.index.names or vix_df.index.name == 'Date':
+        vix_df = vix_df.reset_index()
+    # CRITICAL: Parse dates with timezone handling then normalize to date-only
+    # (Stock is UTC-5, VIX is UTC-6 - this handles both)
+    stock_df['Date'] = pd.to_datetime(stock_df['Date'], utc=True, errors='coerce').dt.tz_localize(None).dt.normalize()
+    vix_df['Date'] = pd.to_datetime(vix_df['Date'], utc=True, errors='coerce').dt.tz_localize(None).dt.normalize()
+
+    # Debug: print date ranges
+    print(f"  Stock date range: {stock_df['Date'].min()} to {stock_df['Date'].max()}")
+    print(f"  VIX date range: {vix_df['Date'].min()} to {vix_df['Date'].max()}")
+
+    # Find VIX value column (could be 'VIX', 'Close', or 'Adj Close')
+    vix_columns = vix_df.columns.tolist()
+    print(f"  VIX DataFrame columns: {vix_columns}")
+
+    if 'VIX' in vix_df.columns:
+        vix_close_col = 'VIX'
+    elif 'Close' in vix_df.columns:
+        vix_close_col = 'Close'
+    elif 'Adj Close' in vix_df.columns:
+        vix_close_col = 'Adj Close'
+    else:
+        raise ValueError(f"VIX DataFrame has no 'VIX', 'Close', or 'Adj Close' column. Columns: {vix_columns}")
+
+    print(f"  Using VIX column: '{vix_close_col}'")
+
+    # Select and rename VIX column
+    vix_df_subset = vix_df[['Date', vix_close_col]].copy()
+    if vix_close_col != 'VIX':
+        vix_df_subset.rename(columns={vix_close_col: 'VIX'}, inplace=True)
+
+    # Merge on Date
+    merged = pd.merge(stock_df, vix_df_subset, on='Date', how='left')
+
+    # Debug: check merge result
+    n_nan_before = merged['VIX'].isna().sum()
+    print(f"  VIX NaN count after merge: {n_nan_before} / {len(merged)}")
+
+    if n_nan_before > 0:
+        print(f"  [WARNING] {n_nan_before} rows have missing VIX values")
+
+        # Forward fill missing VIX values
+        merged['VIX'] = merged['VIX'].ffill()
+
+        # Backward fill any remaining NaN at the beginning
+        merged['VIX'] = merged['VIX'].bfill()
+
+        # Final check
+        n_nan_after = merged['VIX'].isna().sum()
+        if n_nan_after > 0:
+            print(f"  [ERROR] Still have {n_nan_after} NaN values after filling!")
+            # Fill with mean as last resort
+            vix_mean = merged['VIX'].mean()
+            merged['VIX'].fillna(vix_mean, inplace=True)
+            print(f"  Filled remaining NaN with mean: {vix_mean:.2f}")
+
+    # Print VIX statistics
+    vix_min = merged['VIX'].min()
+    vix_max = merged['VIX'].max()
+    vix_mean = merged['VIX'].mean()
+    print(f"  VIX statistics: min={vix_min:.2f}, max={vix_max:.2f}, mean={vix_mean:.2f}")
+
     return merged
 
 
