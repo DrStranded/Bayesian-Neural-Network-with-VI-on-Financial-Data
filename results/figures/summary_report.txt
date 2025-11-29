@@ -7,16 +7,16 @@ Model Performance Summary
 Ticker     Model           RMSE         MAE          Unc-Err Corr   
 --------------------------------------------------------------------------------
 AAPL       MA              0.014008     0.010410     N/A            
-           LSTM            0.014285     0.010698     N/A            
-           Bayesian        0.038356     0.033543     0.1175         
+           LSTM            0.013811     0.010301     N/A            
+           Bayesian        0.049739     0.045865     0.0832         
 
 SPY        MA              0.008102     0.006217     N/A            
-           LSTM            0.008014     0.006170     N/A            
-           Bayesian        0.015199     0.012501     0.1118         
+           LSTM            0.010425     0.008657     N/A            
+           Bayesian        0.026100     0.023275     0.2878         
 
 TSLA       MA              0.035634     0.025522     N/A            
-           LSTM            0.037085     0.027903     N/A            
-           Bayesian        0.041973     0.032749     0.0862         
+           LSTM            0.036500     0.027241     N/A            
+           Bayesian        0.036051     0.026886     -0.0820        
 
 
 ================================================================================
@@ -24,22 +24,22 @@ Uncertainty Analysis
 ================================================================================
 
 AAPL:
-  Average Epistemic:  0.122437
-  Average Aleatoric:  0.077638
-  Average Total:      0.145063
-  Unc-Error Corr:     0.1175
+  Average Epistemic:  0.121972
+  Average Aleatoric:  0.073503
+  Average Total:      0.142473
+  Unc-Error Corr:     0.0832
 
 SPY:
-  Average Epistemic:  0.124992
-  Average Aleatoric:  0.064858
-  Average Total:      0.140888
-  Unc-Error Corr:     0.1118
+  Average Epistemic:  0.126932
+  Average Aleatoric:  0.063789
+  Average Total:      0.142120
+  Unc-Error Corr:     0.2878
 
 TSLA:
-  Average Epistemic:  0.116149
-  Average Aleatoric:  0.080859
-  Average Total:      0.141597
-  Unc-Error Corr:     0.0862
+  Average Epistemic:  0.089284
+  Average Aleatoric:  0.065149
+  Average Total:      0.110574
+  Unc-Error Corr:     -0.0820
 
 
 ================================================================================

@@ -188,7 +188,7 @@ def train_val_test_split(
 def create_sequences(
     df: pd.DataFrame,
     seq_len: int = 20,
-    feature_cols: List[str] = ['normalized_price', 'log_return', 'normalized_volume', 'volatility'],
+    feature_cols: List[str] = None,
     target_col: str = 'log_return'
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -211,6 +211,12 @@ def create_sequences(
         >>> print(f"X shape: {X.shape}, y shape: {y.shape}")
         X shape: (1000, 20, 4), y shape: (1000, 1)
     """
+    # Use default features if not specified
+    if feature_cols is None:
+        from training.config import Config
+        config = Config()
+        feature_cols = config.FEATURES
+
     # Extract feature values
     feature_data = df[feature_cols].values
     target_data = df[target_col].values
@@ -315,16 +321,15 @@ def process_stock_data(
     train_df, val_df, test_df = train_val_test_split(stock_df, train_end, val_end)
 
     # Create sequences for each split
-    feature_cols = ['normalized_price', 'log_return', 'normalized_volume', 'volatility']
-
+    # feature_cols will be loaded from config inside create_sequences
     print(f"\n  Creating sequences for train set...")
-    X_train, y_train, vix_train = create_sequences(train_df, seq_len, feature_cols)
+    X_train, y_train, vix_train = create_sequences(train_df, seq_len)
 
     print(f"  Creating sequences for validation set...")
-    X_val, y_val, vix_val = create_sequences(val_df, seq_len, feature_cols)
+    X_val, y_val, vix_val = create_sequences(val_df, seq_len)
 
     print(f"  Creating sequences for test set...")
-    X_test, y_test, vix_test = create_sequences(test_df, seq_len, feature_cols)
+    X_test, y_test, vix_test = create_sequences(test_df, seq_len)
 
     # Return processed data
     processed_data = {
@@ -354,6 +359,7 @@ def main() -> None:
     print("Data Preprocessing Pipeline")
     print("="*80)
     print(f"Tickers: {config.TICKERS}")
+    print(f"Features: {config.FEATURES}")
     print(f"Sequence Length: {config.SEQ_LEN}")
     print(f"Train End: {config.TRAIN_END}")
     print(f"Val End: {config.VAL_END}")

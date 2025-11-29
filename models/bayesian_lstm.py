@@ -389,8 +389,12 @@ class BayesianLSTM(nn.Module):
         # ------------------
         # Sum of KL divergences from both Bayesian layers
         # KL adapts to VIX through the adaptive prior
-        beta = 0.001  # scaling factor for KL term
-        kl = self.fc_mean.kl_divergence() + beta * self.fc_logstd.kl_divergence()
+        beta_mean = 1e-4
+        beta_logstd = 1e-4
+
+        
+        kl = beta_mean * self.fc_mean.kl_divergence() \
+        + beta_logstd * self.fc_logstd.kl_divergence()
 
         # ELBO loss
         # ---------
@@ -400,7 +404,10 @@ class BayesianLSTM(nn.Module):
         # Interpretation:
         # - NLL: Data fit (per sample)
         # - KL/batch_size: Complexity penalty (per sample)
-        loss = nll + kl / len(x)
+        loss = nll + kl / x.size(0)
+
+        
+        
 
         # Return loss and components for monitoring
         metrics = {

@@ -7,6 +7,7 @@ and Bayesian-specific parameters (KL divergence weights, number of samples, etc.
 """
 
 from typing import List
+import torch
 
 
 class Config:
@@ -24,6 +25,7 @@ class Config:
 
     # ==================== General Parameters ====================
     SEED = 42
+    DEVICE = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 
     # ==================== Data Parameters ====================
     TICKERS: List[str] = ['AAPL', 'SPY', 'TSLA']
@@ -34,8 +36,8 @@ class Config:
 
     # ==================== Feature Parameters ====================
     SEQ_LEN: int = 20
-    FEATURES: List[str] = ['normalized_price', 'log_return', 'normalized_volume', 'volatility']
-    INPUT_SIZE: int = 4
+    FEATURES: List[str] = ['log_return', 'volatility']
+    INPUT_SIZE: int = 2
 
     # ==================== Model Parameters ====================
     HIDDEN_SIZE: int = 64

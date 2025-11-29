@@ -116,6 +116,9 @@ class AdaptivePrior:
         # Apply scaling to base standard deviation
         prior_std = self.base_std * scale_factor
 
+        # Clamp to reasonable bounds to avoid extreme variances
+        scale_factor = torch.clamp(scale_factor, min=0.3, max=3.0)
+        
         return prior_std
 
     def log_prior(self, weight, vix_value):
