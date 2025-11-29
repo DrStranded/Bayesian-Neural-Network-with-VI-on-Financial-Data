@@ -76,21 +76,25 @@ def run_bayesian_lstm(ticker, config, device):
             vix = batch['vix'].to(device).squeeze()
 
             # Handle VIX
-            if vix.dim() == 0:
-                vix = vix.unsqueeze(0)
-            vix_mean = vix.mean()
-
-            # Predict with uncertainty
-            pred_mean, total_std, epistemic_std, aleatoric_std = model.predict(
-                X, vix_mean, n_samples=config.N_SAMPLES_TEST
-            )
-
-            all_preds.append(pred_mean.cpu().numpy())
-            all_total_stds.append(total_std.cpu().numpy())
-            all_epistemic_stds.append(epistemic_std.cpu().numpy())
-            all_aleatoric_stds.append(aleatoric_std.cpu().numpy())
-            all_targets.append(y.cpu().numpy())
-            all_vix.append(vix.cpu().numpy())
+            if vix.dim() == 2:
+                vix = vix.squeeze(-1)  # [batch]
+        
+            # Predict for each sample individually
+            for i in range(len(X)):
+                x_i = X[i:i+1]  # [1, seq, features]
+                vix_i = vix[i].item()  # scalar
+                y_i = y[i:i+1]
+                
+                pred_mean, total_std, epistemic_std, aleatoric_std = model.predict(
+                    x_i, vix_i, n_samples=config.N_SAMPLES_TEST
+                )
+                
+                all_preds.append(pred_mean.cpu().numpy())
+                all_total_stds.append(total_std.cpu().numpy())
+                all_epistemic_stds.append(epistemic_std.cpu().numpy())
+                all_aleatoric_stds.append(aleatoric_std.cpu().numpy())
+                all_targets.append(y_i.cpu().numpy())
+                all_vix.append(np.array([[vix_i]]))
 
     # Concatenate results
     predictions = np.concatenate(all_preds, axis=0)

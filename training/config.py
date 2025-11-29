@@ -34,20 +34,20 @@ class Config:
 
     # ==================== Feature Parameters ====================
     SEQ_LEN: int = 20
-    FEATURES: List[str] = ['normalized_price', 'log_return', 'normalized_volume', 'volatility']
+    FEATURES: List[str] = ['ma_return_20', 'ma_volatility_20', 'normalized_volume', 'normalized_price']
     INPUT_SIZE: int = 4
 
     # ==================== Model Parameters ====================
     HIDDEN_SIZE: int = 64
-    NUM_LAYERS: int = 1
+    NUM_LAYERS: int = 2
     DROPOUT: float = 0.2
 
     # Bayesian Prior Parameters
     PRIOR_BASE_STD: float = 0.1
     VIX_MEAN: float = 20.0
     VIX_SCALE: float = 10.0
-    VIX_SENSITIVITY: float = 2.0
-
+    VIX_SENSITIVITY: float = 0.5
+    
     # ==================== Training Parameters ====================
     BATCH_SIZE: int = 32
     LEARNING_RATE: float = 0.001

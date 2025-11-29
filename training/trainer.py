@@ -119,9 +119,9 @@ class Trainer:
             avg_rmse: Average RMSE (√MSE)
         """
         self.model.train()
-        total_loss = 0
-        total_mse = 0
+        total_loss = 0      
         n_batches = 0
+        
 
         # Progress bar
         pbar = tqdm(self.train_loader, desc="Training", leave=False)
@@ -175,7 +175,9 @@ class Trainer:
         total_loss = 0
         total_nll = 0
         total_kl = 0
+        total_se = 0.0       
         n_batches = 0
+        n_points = 0
 
         # Progress bar
         pbar = tqdm(self.train_loader, desc="Training", leave=False)
@@ -192,17 +194,14 @@ class Trainer:
             if vix.dim() == 0:
                 vix = vix.unsqueeze(0)
 
-            # Use mean VIX for batch (simplification)
-            vix_mean = vix.mean()
+            
 
             # Forward pass + ELBO loss
             # ------------------------
             # n_samples=1 is efficient and works well in practice
             self.optimizer.zero_grad()
-            loss, metrics = self.model.elbo_loss(
-                X, y, vix_mean,
-                n_samples=self.config.N_SAMPLES_TRAIN
-            )
+            vix_mean = vix.mean()
+            loss, metrics = self.model.elbo_loss(X, y, vix_mean, n_samples=self.config.N_SAMPLES_TRAIN)
 
             # Backward pass
             loss.backward()
@@ -220,20 +219,29 @@ class Trainer:
             total_nll += metrics['nll']
             total_kl += metrics['kl']
             n_batches += 1
+            
+            mean_pred, _, _, _ = self.model.predict(
+                X, vix_mean, n_samples=10   # 或者用 config.N_SAMPLES_TRAIN
+            )
+            se = (mean_pred - y) ** 2
+            total_se += se.sum().item()
+            n_points += y.numel()
 
             # Update progress bar
             pbar.set_postfix({
                 'loss': f'{loss.item():.4f}',
                 'nll': f'{metrics["nll"]:.4f}',
-                'kl': f'{metrics["kl"]:.1f}'
+                'kl_s': f'{metrics["kl_scaled"]:.4f}'
             })
+
 
         # Compute averages
         avg_loss = total_loss / n_batches
-        avg_nll = total_nll / n_batches
-        avg_kl = total_kl / n_batches
+        avg_nll  = total_nll / n_batches
+        avg_kl   = total_kl  / n_batches
+        avg_rmse = np.sqrt(total_se / n_points)
 
-        return avg_loss, {'nll': avg_nll, 'kl': avg_kl}
+        return avg_loss, {'nll': avg_nll, 'kl': avg_kl, 'rmse': avg_rmse}
 
     def validate(self):
         """
@@ -326,40 +334,48 @@ class Trainer:
 
         Returns:
             avg_loss: Average ELBO loss
-            avg_rmse: Approximate RMSE (from NLL)
+            avg_rmse: True RMSE from predictive means
+
         """
         self.model.eval()
-        total_loss = 0
-        total_nll = 0
-        total_kl = 0
+        total_loss = 0.0
+        total_nll = 0.0
+        total_kl = 0.0
+        total_se = 0.0  # sum of squared errors
         n_batches = 0
+        n_points = 0
 
         with torch.no_grad():
             for batch in self.val_loader:
-                # Move to device
                 X = batch['X'].to(self.device)
                 y = batch['y'].to(self.device)
                 vix = batch['vix'].to(self.device).squeeze()
 
-                # Handle VIX dimensions
                 if vix.dim() == 0:
                     vix = vix.unsqueeze(0)
                 vix_mean = vix.mean()
 
-                # ELBO loss (single sample for validation)
-                loss, metrics = self.model.elbo_loss(X, y, vix_mean, n_samples=1)
-
+                # ELBO loss
+                loss, metrics = self.model.elbo_loss(
+                    X, y, vix_mean, n_samples=1
+                )
                 total_loss += loss.item()
                 total_nll += metrics['nll']
                 total_kl += metrics['kl']
                 n_batches += 1
 
+                # True RMSE from predictions
+                mean_pred, _, _, _ = self.model.predict(
+                    X, vix_mean, n_samples=10
+                )
+                se = (mean_pred - y) ** 2
+                total_se += se.sum().item()
+                n_points += y.numel()
+
         avg_loss = total_loss / n_batches
         avg_nll = total_nll / n_batches
         avg_kl = total_kl / n_batches
-
-        # Approximate RMSE from NLL (for Gaussian likelihood)
-        avg_rmse = np.sqrt(avg_nll)
+        avg_rmse = np.sqrt(total_se / n_points)  # ✅ 正确的RMSE
 
         return avg_loss, avg_rmse
 
@@ -415,7 +431,7 @@ class Trainer:
                 train_loss, train_rmse = self.train_epoch_standard()
             else:  # bayesian_lstm
                 train_loss, train_metrics = self.train_epoch_bayesian()
-                train_rmse = np.sqrt(train_metrics['nll'])
+                train_rmse = train_metrics['rmse']
 
             # Validate
             # --------

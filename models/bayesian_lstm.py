@@ -83,6 +83,9 @@ class BayesianLSTM(nn.Module):
         >>> mean, std = model(x, vix)
         >>> pred, total_unc, epi_unc, ale_unc = model.predict(x, vix, n_samples=100)
     """
+    
+    KL_WEIGHT_MEAN = 1e-4
+    KL_WEIGHT_LOGSTD = 1e-4    
 
     def __init__(self,
                  input_size=4,
@@ -389,8 +392,16 @@ class BayesianLSTM(nn.Module):
         # ------------------
         # Sum of KL divergences from both Bayesian layers
         # KL adapts to VIX through the adaptive prior
-        beta = 0.001  # scaling factor for KL term
-        kl = self.fc_mean.kl_divergence() + beta * self.fc_logstd.kl_divergence()
+        kl_mean = self.fc_mean.kl_divergence()
+        kl_logstd = self.fc_logstd.kl_divergence()
+        
+        
+
+        kl = self.KL_WEIGHT_MEAN * kl_mean + self.KL_WEIGHT_LOGSTD * kl_logstd
+        
+
+        loss = nll + kl / len(x)
+
 
         # ELBO loss
         # ---------
@@ -405,7 +416,8 @@ class BayesianLSTM(nn.Module):
         # Return loss and components for monitoring
         metrics = {
             'nll': nll.item(),
-            'kl': kl.item(),
+            'kl': kl.item(),          
+            'kl_scaled': kl_scaled.item(),
             'total': loss.item()
         }
 

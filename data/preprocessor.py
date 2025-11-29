@@ -58,6 +58,10 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
     # 4. Volatility (20-day rolling std of log returns)
     df['volatility'] = df['log_return'].rolling(window=20).std()
 
+    # 5. Moving average features (自回归)
+    df['ma_return_20'] = df['log_return'].rolling(window=20, min_periods=1).mean()
+    df['ma_volatility_20'] = df['volatility'].rolling(window=20, min_periods=1).mean()
+
     # Drop first 20 rows that contain NaN values from rolling operations
     df = df.iloc[20:].copy()
 
@@ -188,7 +192,7 @@ def train_val_test_split(
 def create_sequences(
     df: pd.DataFrame,
     seq_len: int = 20,
-    feature_cols: List[str] = ['normalized_price', 'log_return', 'normalized_volume', 'volatility'],
+    feature_cols = ['ma_return_20', 'ma_volatility_20', 'normalized_volume', 'normalized_price'],
     target_col: str = 'log_return'
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -315,7 +319,16 @@ def process_stock_data(
     train_df, val_df, test_df = train_val_test_split(stock_df, train_end, val_end)
 
     # Create sequences for each split
-    feature_cols = ['normalized_price', 'log_return', 'normalized_volume', 'volatility']
+    feature_cols = ['ma_return_20', 'ma_volatility_20', 'normalized_volume', 'normalized_price']
+
+    # Standardize features using ONLY train statistics
+    feature_mean = train_df[feature_cols].mean()
+    feature_std = train_df[feature_cols].std() + 1e-8
+
+    # Apply to all splits
+    train_df[feature_cols] = (train_df[feature_cols] - feature_mean) / feature_std
+    val_df[feature_cols] = (val_df[feature_cols] - feature_mean) / feature_std
+    test_df[feature_cols] = (test_df[feature_cols] - feature_mean) / feature_std
 
     print(f"\n  Creating sequences for train set...")
     X_train, y_train, vix_train = create_sequences(train_df, seq_len, feature_cols)

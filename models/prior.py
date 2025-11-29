@@ -113,6 +113,8 @@ class AdaptivePrior:
         # tanh squashes the normalized VIX to [-1, 1] for bounded adaptation
         scale_factor = 1.0 + self.sensitivity * torch.tanh(normalized_vix)
 
+        scale_factor = torch.clamp(scale_factor, min=1e-3) # Prevent non-positive std
+        
         # Apply scaling to base standard deviation
         prior_std = self.base_std * scale_factor
 
