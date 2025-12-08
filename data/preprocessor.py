@@ -58,7 +58,7 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
     # 4. Volatility (20-day rolling std of log returns)
     df['volatility'] = df['log_return'].rolling(window=20).std()
 
-    # 5. Moving average features (自回归)
+    # 5. Moving average features
     df['ma_return_20'] = df['log_return'].rolling(window=20, min_periods=1).mean()
     df['ma_volatility_20'] = df['volatility'].rolling(window=20, min_periods=1).mean()
 
