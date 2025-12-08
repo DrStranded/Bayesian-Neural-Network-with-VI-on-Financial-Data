@@ -13,7 +13,7 @@ def decompose_uncertainty(epistemic_std, aleatoric_std):
     """
     Verify uncertainty decomposition
 
-    Total² = Epistemic² + Aleatoric²
+    Total^2 = Epistemic^2 + Aleatoric^2
 
     Args:
         epistemic_std: Model uncertainty [N, 1]
