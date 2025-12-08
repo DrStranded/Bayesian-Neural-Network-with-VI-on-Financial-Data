@@ -51,6 +51,7 @@ def plot_raw_prices(
     """
     Load raw prices for the given tickers and plot them on a single figure.
 
+    
     The figure is formatted with small margins to use space efficiently.
     """
     # Load all price series and align on the date index
