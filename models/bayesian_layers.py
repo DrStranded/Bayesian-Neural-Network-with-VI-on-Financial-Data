@@ -64,6 +64,7 @@ class BayesianLinear(nn.Module):
         self.out_features = out_features
         self.prior = prior
 
+        
         # Posterior parameters (trainable)
         # --------------------------------
         # For weights W ~ N(μ_w, σ²_w), we maintain μ and log(σ)
